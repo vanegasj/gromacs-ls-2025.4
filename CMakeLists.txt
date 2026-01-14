@@ -623,6 +623,23 @@ include(gmxManageSuffixes)
 # Find external packages                                               #
 ########################################################################
 
+find_package(MDStress)
+if(MDSTRESS_FOUND)
+    include_directories(${MDSTRESS_INCLUDE_DIRS})
+    list(APPEND GMX_EXTRA_LIBRARIES ${MDSTRESS_LIBRARIES})
+else()
+    if(NOT EXISTS ${PROJECT_SOURCE_DIR}/src/contrib/mdstress-library)
+      message("** Downloading MDStress Library")
+      execute_process(
+          COMMAND git clone https://bitbucket.org/mdstresslib/mdstress-library
+          WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/src/contrib)
+    endif()
+    message("** Going to compile MDStress Library in build stage")
+    add_subdirectory(src/contrib/mdstress-library)
+    include_directories(src/contrib/mdstress-library/include)
+    list(APPEND GMX_EXTRA_LIBRARIES ${CMAKE_BINARY_DIR}/lib/libmdstress.so)
+endif()
+
 option(GMX_HWLOC "Use hwloc portable hardware locality library" OFF)
 
 if (GMX_HWLOC)
