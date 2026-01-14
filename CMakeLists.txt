@@ -628,15 +628,15 @@ if(MDSTRESS_FOUND)
     include_directories(${MDSTRESS_INCLUDE_DIRS})
     list(APPEND GMX_EXTRA_LIBRARIES ${MDSTRESS_LIBRARIES})
 else()
-    if(NOT EXISTS ${PROJECT_SOURCE_DIR}/src/contrib/mdstress-library)
+    if(NOT EXISTS ${PROJECT_SOURCE_DIR}/src/external/mdstress-library)
       message("** Downloading MDStress Library")
       execute_process(
-          COMMAND git clone https://bitbucket.org/mdstresslib/mdstress-library
-          WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/src/contrib)
+          COMMAND git clone https://github.com/vanegasj/mdstress-library
+          WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/src/external)
     endif()
     message("** Going to compile MDStress Library in build stage")
-    add_subdirectory(src/contrib/mdstress-library)
-    include_directories(src/contrib/mdstress-library/include)
+    add_subdirectory(src/external/mdstress-library)
+    include_directories(src/external/mdstress-library/include)
     list(APPEND GMX_EXTRA_LIBRARIES ${CMAKE_BINARY_DIR}/lib/libmdstress.so)
 endif()
 
