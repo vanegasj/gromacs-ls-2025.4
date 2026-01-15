@@ -33,7 +33,7 @@ for file in files:
 for cat, files in categories.items():
     if files:
         print(f"\n{cat.upper()} ({len(files)} files):")
-        for f in files:  # Show first 10
+        for f in files[:10]:  # Show first 10
             print(f"  - {f}")
         if len(files) > 10:
             print(f"  ... and {len(files) - 10} more")
