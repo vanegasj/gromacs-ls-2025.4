@@ -59,6 +59,8 @@
 #include "gromacs/utility/iserializer.h"
 #include "gromacs/utility/real.h"
 
+#include "mdstress/mds_stressgrid.h"
+
 #include "replicaexchange.h"
 
 struct gmx_output_env_t;
@@ -135,6 +137,7 @@ public:
                                           { efDAT, "-membed", "membed", ffOPTRD },
                                           { efTOP, "-mp", "membed", ffOPTRD },
                                           { efNDX, "-mn", "membed", ffOPTRD },
+                                          { efDAT, "-ols", "localstress", ffWRITE},
                                           { efXVG, "-if", "imdforces", ffOPTWR },
                                           { efXVG, "-swap", "swapions", ffOPTWR } } };
 
@@ -148,6 +151,22 @@ public:
      *
      * \todo Clarify initialization, ownership, and lifetime. */
     gmx_output_env_t* oenv = nullptr;
+
+    /* Local Stress parameters */
+    real localsmindihangle = 0.0;
+    int nstlocals = 0;
+    real localsgridspacing = 0.1;
+    real localsimpulsewidth = 0.0001;
+    int localsgridx = 0;
+    int localsgridy = 0;
+    int localsgridz = 0;
+    int localsskip = 1;
+    int localsdebugprint = 0;
+    const char* localsenum = "all";
+    const char* localsfdenum = "ccfd";
+    gmx_bool localsdispcor = TRUE;
+    gmx_bool localscuda = FALSE;
+    gmx_bool localspbc = FALSE;
 
     /*! \brief Command line options, defaults, docs and storage for them to fill. */
     /*! \{ */
@@ -351,7 +370,82 @@ public:
           etINT,
           { &replExParams.randomSeed },
           "Seed for replica exchange, -1 is generate a seed" },
-        { "-imdport", FALSE, etINT, { &imdOptions.port }, "HIDDENIMD listening port" },
+
+        { "-localsgrid",  
+          FALSE, 
+          etREAL, 
+          {&localsgridspacing},
+          "Spacing for local stress grid (default = 0.1 nm)" },
+        { "-localsiw",  
+          FALSE, 
+          etREAL, 
+          {&localsimpulsewidth},
+          "Apply an impulsive correction for plain cutoff potentials (VDW or elec) using a delta function with a finite width (default = 0.0001 nm)" },
+        { "-nstlp",  
+          FALSE, 
+          etINT, 
+          {&nstlocals},
+          "HIDDENFrequency of writing local stress grid to file (default = 0)" },
+        { "-lsgridx", 
+          FALSE, 
+          etINT, 
+          {&localsgridx},
+          "Set the local stress grid size in the x direction (default use box[XX][XX]/localsgrid)"},
+        { "-lsgridy", 
+          FALSE, 
+          etINT, 
+          {&localsgridy},
+          "Set the local stress grid size in the y direction (default use box[YY][YY]/localsgrid)"},
+        { "-lsgridz", 
+          FALSE, 
+          etINT, 
+          {&localsgridz},
+          "Set the local stress grid size in the z direction (default use box[ZZ][ZZ]/localsgrid)"},
+        { "-lscont", 
+          FALSE, 
+          etSTR, 
+          {&localsenum},
+          "Select which contribution to write to output (default = all): all, vdw, coul, angles, bonds, dihp, dihi, dihrb, lincs, settle, shake, cmap, vel, none"},
+        { "-lsfd", 
+          FALSE, 
+          etSTR, 
+          {&localsfdenum},
+          "Select the type of force decomposition to be used: ccfd (covariant central force decomposition, default), ncfd (non-covariant central force decomposition), or gld (Goetz-Lipowsky decomposition)"},
+        { "-lsdispcor",  
+          FALSE, 
+          etBOOL, 
+          {&localsdispcor},
+          "Include contribution from dispersion correction." },
+        { "-lspbc",  
+          FALSE, 
+          etBOOL, 
+          {&localspbc},
+          "Correct periodic boundary conditions in mdstress library. Typically not needed as gromacs passes the PBC-corrected positions and distances." },
+        { "-lsmindihang",  
+          FALSE, 
+          etREAL, 
+          {&localsmindihangle},
+          "Don't include dihedral local stress contributions if the sin(|phi|) is less than this factor. Use this flag if there is a dihedral potential (e.g. CHARMM36 lipid FF) that has been parametrized with a min/max that is not 0/Pi and the stress profiles show large noise that does not converge with additional frames. A -lsmindihang value of 0.0005 is typically sufficient to fix this problem." },
+        { "-lsskip",  
+          FALSE, 
+          etINT, 
+          {&localsskip},
+          "Only compute the local stress every nth frame" },
+        { "-lscuda",  
+          FALSE, 
+          etBOOL, 
+          {&localscuda},
+          "HIDDENEnable CUDA operations when calculating local stress contributions" },
+        { "-lsdebugprint",  
+          FALSE, 
+          etINT, 
+          {&localsdebugprint},
+          "HIDDENPrint various elements of the elasticity tensor to stdout at a given frame interval for debugging purposes" },
+        { "-imdport", 
+          FALSE, 
+          etINT, 
+          { &imdOptions.port }, 
+          "HIDDENIMD listening port" },
         { "-imdwait",
           FALSE,
           etBOOL,

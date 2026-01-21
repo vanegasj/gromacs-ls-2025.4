@@ -58,6 +58,8 @@
 #include "gromacs/utility/arraysize.h"
 #include "gromacs/utility/fatalerror.h"
 
+extern mds::StressGrid locals_grid;
+
 namespace gmx
 {
 
