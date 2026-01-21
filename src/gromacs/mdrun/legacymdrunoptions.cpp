@@ -146,6 +146,97 @@ int LegacyMdrunOptions::updateFromCommandLine(int argc, char** argv, ArrayRef<co
 
     hw_opt.threadAffinity = static_cast<ThreadAffinity>(nenum(thread_aff_opt_choices));
 
+
+    if (strcmp(localsfdenum,"ccfd") == 0) {
+      localsfdecomp = mds_ccfd;
+      printf("\nSelected force decomposition: %s\n", localsfdenum);
+    }else if (strcmp(localsfdenum,"ncfd") == 0) {
+      localsfdecomp = mds_ncfd;
+      printf("\nSelected force decomposition: %s\n", localsfdenum);
+    }else{
+      printf("\nOption not recognized, will use covariant central force decomposition\n");
+      localsfdecomp = mds_ccfd;
+    }
+
+    printf("\nSelected contribution: %s\n",localsenum);
+    if (strcmp(localsenum,"all") == 0) {
+      printf("\nWill write all contributions to the local stress\n");
+      localscontrib = mds_all;
+    }else if(strcmp(localsenum,"vdw") == 0){
+      printf("\nWill only write vdw contributions to the local stress\n");
+      localscontrib = mds_vdw;
+    }else if(strcmp(localsenum,"coul") == 0){
+      printf("\nWill only write coulomb contributions to the local stress\n");
+      localscontrib = mds_cou;
+    }else if(strcmp(localsenum,"angles") == 0){
+      printf("\nWill only write angle contributions to the local stress\n");
+      localscontrib = mds_ang;
+    }else if(strcmp(localsenum,"bonds") == 0){
+      printf("\nWill only write bonding contributions to the local stress\n");
+      localscontrib = mds_bnd;
+    }else if(strcmp(localsenum,"dihp") == 0){
+      printf("\nWill only write proper dihedral contributions to the local stress\n");
+      localscontrib = mds_dip;
+    }else if(strcmp(localsenum,"dihi") == 0){
+      printf("\nWill only write inproper dihedral contributions to the local stress\n");
+      localscontrib = mds_dii;
+    }else if(strcmp(localsenum,"diho") == 0){
+      printf("\nWill only write other dihedral contributions to the local stress\n");
+      localscontrib = mds_dio;
+    }else if(strcmp(localsenum,"dihrb") == 0){
+      printf("\nWill only write RB dihedral contributions to the local stress\n");
+      localscontrib = mds_drb;
+    }else if(strcmp(localsenum,"lincs") == 0){
+      printf("\nWill only write LINCS constraints contributions to the local stress\n");
+      localscontrib = mds_lin;
+    }else if(strcmp(localsenum,"settle") == 0){
+      printf("\nWill only write SETTLE water constraints contributions to the local stress\n");
+      localscontrib = mds_set;
+    }else if(strcmp(localsenum,"shake") == 0){
+      printf("\nWill only write SHAKE constraints contributions to the local stress\n");
+      localscontrib = mds_sha;
+    }else if(strcmp(localsenum,"vel") == 0){
+      printf("\nWill only write velocity contributions to the local stress\n");
+      localscontrib = mds_kin;
+    }else if(strcmp(localsenum,"cmap") == 0){
+      printf("\nWill only write CMAP contributions to the local stress\n");
+      localscontrib = mds_cmp;
+    }else if(strcmp(localsenum,"none") == 0){
+      printf("\nWill not write any contributions to the local stress\n");
+      localscontrib = mds_none;
+    }else{
+      printf("\nOption not recognized, will write all contributions to the local stress\n");
+      localscontrib = mds_all;
+    }
+
+    /* always set the maximum number of threads */
+    locals_grid.SetMaxThreads(hw_opt.nthreads_tmpi);
+
+    /* initialize what we can of locals_grid */
+    if (false == locals_grid.settings.initialized) {
+        if (localsdispcor == FALSE)
+            locals_grid.DisableDispersionCorrection();
+        if (localscuda == TRUE)
+            locals_grid.EnableCuda();
+        locals_grid.SetContribType(localscontrib);
+        locals_grid.SetForceDecomposition(localsfdecomp);
+        locals_grid.SetMinDihAngle(localsmindihangle);
+
+        if(localsgridspacing<=0)
+        {
+            gmx_fatal(FARGS,"Cannot do local stress with spacing (-localsgrid) <= 0.0\n");
+        }
+
+        locals_grid.SetGridSpacing(localsgridspacing);
+        locals_grid.SetImpulseWidth(localsimpulsewidth);
+        locals_grid.SetGridNCells(
+                localsgridx,
+                localsgridy,
+                localsgridz);
+        locals_grid.SetDebugPrint(localsdebugprint);
+    }
+
+
     if (!opt2parg_bSet("-append", asize(pa), pa))
     {
         mdrunOptions.appendingBehavior = AppendingBehavior::Auto;
