@@ -184,6 +184,8 @@ struct pme_load_balancing_t;
 
 using gmx::SimulationSignaller;
 
+extern mds::StressGrid locals_grid;
+
 void gmx::LegacySimulator::do_md()
 {
     // TODO Historically, the EM and MD "integrators" used different
@@ -2145,6 +2147,27 @@ void gmx::LegacySimulator::do_md()
         step++;
         step_rel++;
         observablesReducer.markAsReadyToReduce();
+
+	/* begin local stress */
+	real mass;
+	rvec *x_full, *v_half;
+	int cr_size;
+	
+	// This call acts as a registration of all threads on the node
+	locals_grid.SetThreadIDS(cr->nodeid);
+	locals_grid.SetThreadIDS(cr->nodeid);
+	// NOTE: MASTER was renamed to MAIN at some point. 
+	if (MAIN(CR)) {
+	    // Make sure we aren't getting residual contributions 
+	    // from setup phase
+	    locals_grid.SetContribType(mds_none);
+	} 
+	if (PAR(CR)) {
+	    // Share localsskip frame number
+	    gmx_bcast(sizeof(localsskip), &localsskip, cr);
+	}
+
+	/* end local stress */
 
 #if GMX_FAHCORE
         if (MAIN(cr))
