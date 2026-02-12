@@ -214,6 +214,9 @@ void gmx::LegacySimulator::do_md()
     t_extmass MassQ;
     char      sbuf[STEPSTRSIZE], sbuf2[STEPSTRSIZE];
 
+    std::vector<RVec> x_full_locals;
+    std::vector<RVec> v_half_locals;
+
     /* PME load balancing data for GPU kernels */
     gmx_bool bPMETune         = FALSE;
     gmx_bool bPMETunePrinting = FALSE;
@@ -607,6 +610,53 @@ void gmx::LegacySimulator::do_md()
                                state_->box,
                                state_->lambda[FreeEnergyPerturbationCouplingType::Bonded]);
         }
+	/* local stress - PME check */
+	if (usingPme(ir->coulombtype))
+	{
+	    printf("STOP!\n");
+	    printf("The contributions from PME cannot currently be added to the stress tensor.\n");
+	    printf("If you ran your simulation using PME, then create a new tpr file where the\n");
+	    printf("electrostatics are treated with a plain cut-off or reaction-field (rcoul >= 2.0 nm).\n");
+	    printf("\n");
+	    gmx_fatal(FARGS, "Stopping the local stress analysis\n");
+	}
+	
+	/* local stress - grid initialization */
+	if (MAIN(cr_))
+	{
+	    if (!locals_grid.settings.initialized)
+	    {
+		// locals_grid.SetFileName(opt2fn("-ols", nFile_, fnm_));
+		// You'll need to figure out how to get the filename in the new API
+		
+		locals_grid.SetBox(state_->box, ir->pressureCouplingOptions.epc);
+
+		// Setup periodic boundary conditions
+		bool xper, yper, zper, periodic;
+		periodic = true; // You'll need to pass this as a parameter
+		if (ir->pbcType == PbcType::Xyz)
+		{
+		    xper = yper = zper = true;
+		}
+		else if (ir->pbcType == PbcType::XY)
+		{
+		    xper = yper = true;
+		    zper = false;
+		}
+		else
+		{
+		    xper = yper = zper = false;
+		}
+		locals_grid.SetPeriodicBoundaries(xper, yper, zper, periodic);
+
+		// Set temperature
+		locals_grid.SetTemperature(ir->opts.ref_t[0]);
+
+		// Initialize grids
+		locals_grid.Init();
+		locals_grid.UpdateBoxSpacings(state_->box);
+	    }
+	}
     }
 
     const int nstfep = computeFepPeriod(*ir, replExParams_);
@@ -804,6 +854,29 @@ void gmx::LegacySimulator::do_md()
     wallcycle_start(wallCycleCounters_, WallCycleCounter::Run);
     print_start(fpLog_, cr_, wallTimeAccounting_, "mdrun");
 
+    /* begin local stress 
+     * This is the intitial thread registration*/
+    real mass;
+    rvec *x_full, *v_half;
+    int cr_size;
+    
+    // This call acts as a registration of all threads on the node
+    locals_grid.SetThreadIDS(cr_->nodeid);
+    locals_grid.SetThreadIDS(cr_->nodeid);
+    // NOTE: MASTER was renamed to MAIN at some point. 
+    if (MAIN(cr_)) {
+        // Make sure we aren't getting residual contributions 
+        // from setup phase
+        locals_grid.SetContribType(mds_none);
+    } 
+    if (PAR(cr_)) {
+        // Share localsskip frame number
+        gmx_bcast(sizeof(localsskip), &localsskip, cr_);
+    }
+    
+    /* end local stress */
+
+
     /***********************************************************
      *
      *             Loop over MD steps
@@ -880,6 +953,27 @@ void gmx::LegacySimulator::do_md()
     {
         /* Determine if this is a neighbor search step */
         const bool bNStList = (ir->nstlist > 0 && step % ir->nstlist == 0);
+
+	/* begin locals - frame analysis control */
+        // You'll need to pass localsskip as a parameter
+        bool locals_bDoAnalysis = ((step % localsskip) == 0 || step == -1);
+        int64_t last_analysis_step = locals_grid.SetFrameId(step, locals_bDoAnalysis);
+        if (last_analysis_step >= step)
+        {
+            locals_bDoAnalysis = false;
+        }
+    
+        if (locals_bDoAnalysis)
+        {
+            // localscontrib needs to be passed as a parameter
+            locals_grid.SetContribType(localscontrib);
+            locals_grid.UpdateBoxSpacings(state_->box);
+        }
+        else
+        {
+            locals_grid.SetContribType(mds_none);
+        }
+        /* end locals */
 
         if (bPMETune && bNStList)
         {
@@ -1210,6 +1304,20 @@ void gmx::LegacySimulator::do_md()
             || !mdGraph->useGraphThisStep())
         {
 
+	    /* local stress caputure coordinates and half-step velocities for non-VV */
+	    if (!EI_VV(ir->eI) && locals_bDoAnalysis)
+	    {
+	        int natoms = haveDDAtomOrdering(*cr_) ? md->homenr : state_->natoms;
+	        x_full_locals.resize(natoms);
+	        v_half_locals.resize(natoms);
+	        
+	        for (int i = 0; i < natoms; i++)
+	        {
+	    	x_full_locals[i] = state_->x[i];
+	    	v_half_locals[i] = state_->v[i];
+	        }
+	    }
+
             if (shellfc)
             {
                 /* Now is the time to relax the shells */
@@ -1345,6 +1453,21 @@ void gmx::LegacySimulator::do_md()
                                      nrnb_,
                                      fpLog_,
                                      wallCycleCounters_);
+
+		/* local stress - capture coordinates and velocities for VV */
+		if (EI_VV(ir->eI) && locals_bDoAnalysis)
+		{
+		    int natoms = haveDDAtomOrdering(*cr_) ? md->homenr : state_->natoms;
+		    x_full_locals.resize(natoms);
+		    v_half_locals.resize(natoms);
+		    
+		    for (int i = 0; i < natoms; i++)
+		    {
+			x_full_locals[i] = state_->x[i];
+			v_half_locals[i] = state_->v[i];
+		    }
+		}
+
                 if (virtualSites_ != nullptr && needVirtualVelocitiesThisStep)
                 {
                     // Positions were calculated earlier
@@ -2148,27 +2271,7 @@ void gmx::LegacySimulator::do_md()
         step_rel++;
         observablesReducer.markAsReadyToReduce();
 
-	/* begin local stress */
-	real mass;
-	rvec *x_full, *v_half;
-	int cr_size;
 	
-	// This call acts as a registration of all threads on the node
-	locals_grid.SetThreadIDS(cr->nodeid);
-	locals_grid.SetThreadIDS(cr->nodeid);
-	// NOTE: MASTER was renamed to MAIN at some point. 
-	if (MAIN(CR)) {
-	    // Make sure we aren't getting residual contributions 
-	    // from setup phase
-	    locals_grid.SetContribType(mds_none);
-	} 
-	if (PAR(CR)) {
-	    // Share localsskip frame number
-	    gmx_bcast(sizeof(localsskip), &localsskip, cr);
-	}
-
-	/* end local stress */
-
 #if GMX_FAHCORE
         if (MAIN(cr))
         {
@@ -2223,6 +2326,13 @@ void gmx::LegacySimulator::do_md()
             energyOutput.printAverages(fpLog_, groups);
         }
     }
+
+    /* local stress final output */
+    if (MAIN(cr_)) {
+    {
+	locals_grid.Write();
+    }
+
     done_mdoutf(outf);
 
     if (bPMETune)
