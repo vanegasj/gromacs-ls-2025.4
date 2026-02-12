@@ -38,6 +38,17 @@
  * \author David van der Spoel <david.vanderspoel@icm.uu.se>
  * \ingroup module_mdrun
  */
+
+/*
+ * This file was modified for the GROMACS-LS project by Juan Vanegas and 
+ * Nathaniel Chappelle, following the original GROMACS-LS modifications by 
+ * Juan Vanegas, Alejandro Torres-Sanchez which was based on the v2016.3 of 
+ * GROMACS. 
+ *
+ * This file has been modified to include the MDStress Library, also developed 
+ * by Juan Vanegas and Alejandro Torres-Sanchez
+ */
+
 #include "gmxpre.h"
 
 #include <cinttypes>
@@ -2265,6 +2276,58 @@ void gmx::LegacySimulator::do_md()
         {
             dd_cycles_add(cr_->dd, cycles, ddCyclStep);
         }
+
+	/* begin local stress - kinetic distribution and checkpoint */
+	if (locals_bDoAnalysis)
+	{
+	    int natoms = haveDDAtomOrdering(*cr_) ? md->homenr : state_->natoms;
+	    
+	    // Distribute kinetic energy contributions to the stress grid
+	    if (locals_grid.settings.contrib == mds_all || locals_grid.settings.contrib == mds_kin)
+	    {
+		for (int i = 0; i < natoms; i++)
+		{
+		    int gi = i;
+		    if (haveDDAtomOrdering(*cr_))
+		    {
+			gi = cr_->dd->globalAtomIndices[i];
+		    }
+		    real mass = md->massT[i];
+		    
+		    // Different logic for VV vs non-VV integrators
+		    if (EI_VV(ir->eI))
+		    {
+			// For VV: use captured half-step velocities for both v_half and v_full
+			locals_grid.DistributeKinetic(mass, x_full_locals[i], v_half_locals[i], v_half_locals[i]);
+		    }
+		    else
+		    {
+			// For leap-frog: use captured half-step v and current full-step v
+			locals_grid.DistributeKinetic(mass, x_full_locals[i], v_half_locals[i], state_->v[i]);
+		    }
+		}
+	    }
+	    
+	    // Sum the grid contributions
+	    locals_grid.SumGrid();
+	    
+	    // Save checkpoint (main rank only)
+	    if (MAIN(cr_))
+	    {
+		bool save_success = locals_grid.SaveCheckpoint(nullptr, nullptr);
+		if (!save_success)
+		{
+		    fprintf(stderr,
+			    "\n\nSTRESSLIB: Failed to save a checkpoint, stopping immediately without saving\n\n");
+		    bLastStep = TRUE;
+		}
+	    }
+	    
+	    // Clear the temporary arrays
+	    x_full_locals.clear();
+	    v_half_locals.clear();
+	}
+	/* end local stress */
 
         /* increase the MD step number */
         step++;
