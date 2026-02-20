@@ -65,3 +65,4 @@ The 2025.4 version uses different function signatures and code organization. The
 - Some function names may have changed (check `bonded.h` for current names)
 - Need to maintain compatibility with both single and double precision builds
 - Born term support requires careful handling of implicit vs explicit hydrogen bonds
+- There are GPU listed-forces paths (`listed_forces_gpu_*`); local stress is CPU-only unless explicitly added

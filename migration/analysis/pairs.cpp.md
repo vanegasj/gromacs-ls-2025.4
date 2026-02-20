@@ -49,3 +49,4 @@ The pairs.cpp file handles non-bonded pair interactions (1-4 interactions, exclu
 - In 2025.4, pair interactions may be handled differently due to the new nbnxm architecture
 - Need to verify if pairs are still calculated in listed-forces or moved to nbnxm
 - Check if 1-4 interactions still go through listed-forces in 2025.4
+- GPU listed-forces paths exist; local stress is CPU-only unless explicitly added to GPU kernels

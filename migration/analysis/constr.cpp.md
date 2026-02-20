@@ -1,8 +1,9 @@
 # Analysis: constr.cpp (Constraints)
 
 ## File Location
-- **2016.3 (gromacs-ls)**: `src/gromacs/mdlib/constr.cpp`
-- **2025.4 (gromacs-ls-2025.4)**: Need to locate - constraints may be in different location
+- **2016.3 (gromacs-ls)**: `src/gromacs/mdlib/constr.cpp`, `src/gromacs/mdlib/settle.cpp`
+- **2025.4 (gromacs-ls-2025.4)**: `src/gromacs/mdlib/constr.cpp`, `src/gromacs/mdlib/settle.cpp`
+- **GPU/dispatch paths (2025.4)**: `src/gromacs/mdlib/settle_gpu*.{cpp,h}`, `src/gromacs/mdlib/update_constrain_gpu_*.{cpp,h}`, `src/gromacs/modularsimulator/constraintelement.cpp`
 
 ## Functionality in 2016.3
 The constraints code handles SETTLE (water), LINCS (general constraints), and SHAKE constraints. Local stress modifications distribute constraint stress contributions.
@@ -26,10 +27,10 @@ The constraints code handles SETTLE (water), LINCS (general constraints), and SH
 
 ### Required Changes in 2025.4
 
-1. **Locate constraint implementation** in 2025.4:
-   - Check `src/gromacs/mdlib/` for constraint files
-   - SETTLE may be in separate file
-   - LINCS may have been rewritten
+1. **Identify the constraint entry points** in the modular simulator:
+    - `modularsimulator/constraintelement.cpp` orchestrates constraint application
+    - CPU implementations live in `mdlib/constr.cpp` and `mdlib/settle.cpp`
+    - GPU paths are handled in `mdlib/update_constrain_gpu_*` and `mdlib/settle_gpu*`
 
 2. **For each constraint type**:
 
@@ -48,10 +49,10 @@ The constraints code handles SETTLE (water), LINCS (general constraints), and SH
    - Add locals_grid parameter
    - Similar stress distribution as LINCS
 
-3. **Update headers** in `constr.h`
+3. **Update headers** in `constr.h` and any modular simulator interfaces to pass `locals_grid`
 
 ## Critical Notes
-- The 2025.4 constraint implementation may use different algorithms
-- SETTLE may have been optimized for SIMD
-- Check if constraints still have the same interface
-- Parallelization (OpenMP) may require thread synchronization for stress grid
+- The 2025.4 constraint implementation is split between the modular simulator and mdlib
+- SETTLE has both CPU and GPU code paths; local stress likely needs CPU-only or explicit GPU handling
+- Check whether constraints are applied during GPU update paths when `updateTarget == Gpu`
+- Parallelization (OpenMP/GPU) may require thread-safe accumulation or a reduction before `SumGrid()`

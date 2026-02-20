@@ -3,6 +3,7 @@
 ## File Location
 - **2016.3 (gromacs-ls)**: `src/gromacs/gmxlib/nonbonded/` (NOTE: different directory!)
 - **2025.4 (gromacs-ls-2025.4)**: `src/gromacs/nbnxm/`
+- **Kernel templates (2025.4)**: `src/gromacs/nbnxm/kernel_file_generator/*` (.pre templates, generated at build)
 
 ## Functionality in 2016.3
 The non-bonded kernels calculate van der Waals and electrostatic interactions between atoms. Local stress modifications were added to distribute pair interaction stress.
@@ -33,9 +34,9 @@ The non-bonded kernels calculate van der Waals and electrostatic interactions be
 The 2025.4 architecture is completely different - it uses `nbnxm` instead of `nbnxn`.
 
 1. **Understand 2025.4 nbnxm architecture**:
-   - Check `src/gromacs/nbnxm/` directory
-   - May have GPU kernels (CUDA, SYCL)
-   - May have different inner/outer loop structure
+    - Check `src/gromacs/nbnxm/` directory and the kernel generator templates
+    - SIMD CPU kernels are generated from `.pre` templates at build time
+    - GPU kernels exist (CUDA/SYCL) and will need a separate stress path or explicit disablement
 
 2. **Key changes needed**:
 
@@ -52,9 +53,10 @@ The 2025.4 architecture is completely different - it uses `nbnxm` instead of `nb
       - Add stress distribution call
 
 3. **Specific locations to check**:
-   - `nbnxm/nbnxm_kernel.cpp` - main kernel dispatch
-   - `nbnxm/atomdata.cpp` - atom data structures
-   - GPU kernel files if present
+    - `nbnxm/nbnxm.cpp` - main dispatch and data flow
+    - `nbnxm/atomdata.*` (if present) or equivalent atom-data structures
+    - `nbnxm/kernel_file_generator/*` for the inner force loops
+    - GPU kernel files if present (CUDA/SYCL)
 
 ## Critical Notes
 ⚠️ The non-bonded kernel modifications are the most complex part of the port:

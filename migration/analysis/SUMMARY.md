@@ -6,7 +6,7 @@
 
 1. **CMakeLists.txt** - MDStress library integration (lines 626-640)
 2. **FindMDStress.cmake** - CMake module for finding MDStress library
-3. **mdrun/md.cpp** - Core MD loop with local stress integration
+3. **mdrun/md.cpp** - Core MD loop with local stress integration (kinetic stress + checkpoint stub)
 4. **mdrun/legacymdrunoptions.cpp/h** - Command-line options for local stress
 5. **README.md** - Updated documentation
 
@@ -20,7 +20,9 @@
 | `listed_forces/pairs.cpp`         | Pair interaction stress                   | HIGH     |
 | `listed_forces/listed_forces.cpp` | Entry point for bonded forces             | HIGH     |
 | `mdlib/force.cpp`                 | Force calculation integration             | HIGH     |
-| `mdlib/constr.cpp`                | SETTLE, LINCS, SHAKE constraints          | HIGH     |
+| `mdlib/constr.cpp`                | LINCS/SHAKE constraint stress             | HIGH     |
+| `mdlib/settle.cpp`                | SETTLE constraint stress                  | HIGH     |
+| `modularsimulator/constraintelement.cpp` | Constraint dispatch hook for locals_grid | HIGH     |
 
 #### Important (Should Have)
 
@@ -29,7 +31,7 @@
 | `ewald/pme.cpp`         | PME electrostatics        | MEDIUM   |
 | `nbnxm/*`               | Non-bonded kernels        | MEDIUM   |
 | `fileio/checkpoint.cpp` | Checkpoint save/load      | MEDIUM   |
-| `mdlib/update.cpp`      | Kinetic stress (velocity) | MEDIUM   |
+| `mdlib/update.cpp`      | Optional refactor (if moving kinetic stress into integrator) | MEDIUM   |
 
 #### Lower Priority
 
@@ -93,6 +95,8 @@
 
 - The "from ground up" strategy is correct given the massive architectural
   changes
-- Some features (e.g., PME stress) may never be fully supported due to
-  fundamental physics challenges
+- Some features (e.g., PME reciprocal-space stress) may never be fully supported due to
+  fundamental physics challenges; document this explicitly
 - Consider GPU vs CPU tradeoffs for local stress calculations
+- The current checkpoint logic in `mdrun/md.cpp` uses `SaveCheckpoint(nullptr, nullptr)` and is not
+  integrated with GROMACS checkpoint files yet

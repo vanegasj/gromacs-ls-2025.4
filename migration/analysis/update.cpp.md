@@ -32,25 +32,23 @@ The update.cpp file handles velocity and position updates (integration). The kin
 
 ### Required Changes in 2025.4
 
-1. **Locate update functions** in 2025.4:
-   - May have been refactored
-   - Check `src/gromacs/mdlib/update.cpp`
+1. **Confirm where kinetic stress is implemented**:
+    - `src/gromacs/mdrun/md.cpp` already distributes kinetic stress (around lines 2280-2330)
+    - The implementation uses half-step velocities for VV and a half-step/full-step mix for leap-frog
 
-2. **Add kinetic stress distribution**:
-   - After velocity update in integration loop
-   - Use: `locals_grid->DistributeKinetic(mass, x, v_half, v_current)`
-   - The formula: σ_kin = -m * v ⊗ v
+2. **Decide whether update.cpp should be modified**:
+    - If you want kinetic stress inside the integrator, thread `mds::StressGrid*` through
+      `Update::update_coords()` / `update_velocities()` and add the distribution there
+    - If you keep the current `md.cpp` hook, ensure the velocity/position snapshots are consistent
 
-3. **Update md.cpp** if not already done:
-   - Already has some local stress modifications (lines 2280-2330)
-   - Verify kinetic stress is properly distributed
-
-4. **Thread synchronization**:
-   - If using OpenMP, ensure thread-safe access to stress grid
-   - May need reduction operations
+3. **Thread synchronization**:
+    - If using OpenMP, ensure thread-safe access to stress grid
+    - May need reduction operations before `SumGrid()`
 
 ## Critical Notes
 - Kinetic stress is crucial for accurate total stress
 - Must use velocities at correct time level (half-step for Verlet)
 - Mass weighting is important for correct stress distribution
-- The 2025.4 version appears to already have some kinetic stress code in md.cpp - verify it's complete
+- The 2025.4 version already has kinetic stress in `md.cpp`; verify velocity time-levels for all integrators
+- The current implementation calls `SaveCheckpoint(nullptr, nullptr)` per step; this is not integrated with
+  the main checkpoint file format and should be reconciled

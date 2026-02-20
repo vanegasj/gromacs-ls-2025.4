@@ -2,7 +2,7 @@
 
 ## File Location
 - **2016.3 (gromacs-ls)**: `src/gromacs/ewald/pme.cpp`, `ewald.cpp`, `pme-pp.cpp`
-- **2025.4 (gromacs-ls-2025.4)**: `src/gromacs/ewald/`
+- **2025.4 (gromacs-ls-2025.4)**: `src/gromacs/ewald/pme.cpp`, `src/gromacs/ewald/ewald.cpp`, `src/gromacs/ewald/long_range_correction.cpp`
 
 ## Functionality in 2016.3
 The PME (Particle Mesh Ewald) implementation calculates electrostatic interactions. In gromacs-ls, modifications were added to distribute the reciprocal space (k-space) stress contributions.
@@ -29,10 +29,10 @@ The PME (Particle Mesh Ewald) implementation calculates electrostatic interactio
    - Check `src/gromacs/ewald/pme.cpp`
    - May be modularized differently
 
-2. **Add include** to relevant ewald files:
-   ```cpp
-   #include "mdstress/mds_stressgrid.h"
-   ```
+2. **Add include** to relevant ewald files (only if reciprocal-space stress is actually implemented):
+    ```cpp
+    #include "mdstress/mds_stressgrid.h"
+    ```
 
 3. **Modify k-space calculation**:
    - After computing reciprocal space forces
@@ -46,8 +46,9 @@ The PME (Particle Mesh Ewald) implementation calculates electrostatic interactio
    - May not need separate modification
 
 5. **Reciprocal space stress**:
-   - Extract per-atom forces from PME grid
-   - Distribute using `locals_grid->DistributeInteraction()`
+    - Extract per-atom forces from PME grid
+    - Distribute using `locals_grid->DistributeInteraction()`
+    - If this is not feasible, explicitly document the limitation and require cutoff electrostatics
 
 ## Critical Notes
 ⚠️ **IMPORTANT**: According to gromacs-ls documentation, PME reciprocal space stress is NOT fully implemented in the 2016.3 version:
