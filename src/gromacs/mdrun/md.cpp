@@ -872,8 +872,8 @@ void gmx::LegacySimulator::do_md()
     int cr_size;
     
     // This call acts as a registration of all threads on the node
-    locals_grid.SetThreadIDS(cr_->nodeid);
-    locals_grid.SetThreadIDS(cr_->nodeid);
+    locals_grid.SetThreadIDs(cr_->nodeid);
+    locals_grid.SetThreadIDs(cr_->nodeid);
     // NOTE: MASTER was renamed to MAIN at some point. 
     if (MAIN(cr_)) {
         // Make sure we aren't getting residual contributions 
@@ -1318,7 +1318,7 @@ void gmx::LegacySimulator::do_md()
 	    /* local stress caputure coordinates and half-step velocities for non-VV */
 	    if (!EI_VV(ir->eI) && locals_bDoAnalysis)
 	    {
-	        int natoms = haveDDAtomOrdering(*cr_) ? md->homenr : state_->natoms;
+	        int natoms = haveDDAtomOrdering(*cr_) ? md->homenr : state_->numAtoms;
 	        x_full_locals.resize(natoms);
 	        v_half_locals.resize(natoms);
 	        
@@ -1468,7 +1468,7 @@ void gmx::LegacySimulator::do_md()
 		/* local stress - capture coordinates and velocities for VV */
 		if (EI_VV(ir->eI) && locals_bDoAnalysis)
 		{
-		    int natoms = haveDDAtomOrdering(*cr_) ? md->homenr : state_->natoms;
+		    int natoms = haveDDAtomOrdering(*cr_) ? md->homenr : state_->numAtoms;
 		    x_full_locals.resize(natoms);
 		    v_half_locals.resize(natoms);
 		    
@@ -2280,7 +2280,7 @@ void gmx::LegacySimulator::do_md()
 	/* begin local stress - kinetic distribution and checkpoint */
 	if (locals_bDoAnalysis)
 	{
-	    int natoms = haveDDAtomOrdering(*cr_) ? md->homenr : state_->natoms;
+	    int natoms = haveDDAtomOrdering(*cr_) ? md->homenr : state_->numAtoms;
 	    
 	    // Distribute kinetic energy contributions to the stress grid
 	    if (locals_grid.settings.contrib == mds_all || locals_grid.settings.contrib == mds_kin)

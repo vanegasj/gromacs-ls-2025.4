@@ -71,6 +71,10 @@ target_link_libraries(mdrun INTERFACE
 #target_link_libraries(mdrun PUBLIC legacy_api)
 #target_link_libraries(mdrun PRIVATE common)
 
+# Adding MDStress to the link
+target_include_directories(mdrun INTERFACE ${MDSTRESS_INCLUDE_DIRS})
+target_link_libraries(mdrun INTERFACE ${MDSTRESS_LIBRARIES})
+
 # Source files have the following private module dependencies.
 #target_link_libraries(mdrun PRIVATE tng_io)
 # TODO: Explicitly link specific modules.

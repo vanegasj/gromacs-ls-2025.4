@@ -169,6 +169,7 @@ public:
     gmx_bool localspbc = FALSE;
     //! Computed contribution type for local stress (from localsenum)
     int localscontrib = 0;
+    int localsfdecomp = 0;
 
     /*! \brief Command line options, defaults, docs and storage for them to fill. */
     /*! \{ */
@@ -199,7 +200,7 @@ public:
 
     ImdOptions& imdOptions = mdrunOptions.imdOptions;
 
-    t_pargs pa[48] = {
+    t_pargs pa[62] = {
 
         { "-dd", FALSE, etRVEC, { &realddxyz }, "Domain decomposition grid, 0 is optimize" },
         { "-ddorder", FALSE, etENUM, { ddrank_opt_choices }, "DD rank order" },

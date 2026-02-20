@@ -42,6 +42,8 @@
 #include "gromacs/timing/wallcycle.h"
 #include "gromacs/utility/basedefinitions.h"
 
+#include "mdstress/mds_stressgrid.h"
+
 class gmx_ekindata_t;
 struct gmx_enerdata_t;
 struct gmx_global_stat;
