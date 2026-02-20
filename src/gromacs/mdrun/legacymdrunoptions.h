@@ -167,6 +167,8 @@ public:
     gmx_bool localsdispcor = TRUE;
     gmx_bool localscuda = FALSE;
     gmx_bool localspbc = FALSE;
+    //! Computed contribution type for local stress (from localsenum)
+    int localscontrib = 0;
 
     /*! \brief Command line options, defaults, docs and storage for them to fill. */
     /*! \{ */

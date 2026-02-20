@@ -318,6 +318,20 @@ private:
      * (or compatible) SimulationInput must be held on all cooperating instances.
      */
     SimulationInputHandle inputHolder_;
+
+    /*! \brief Local stress calculation parameters
+     *
+     * These parameters control the local stress calculation feature.
+     * They are optional and have sensible defaults.
+     */
+    //! Frequency of writing local stress grid to file (0 = disabled)
+    int nstlocals_ = 0;
+    //! Skip factor for local stress calculation (default = 1, no skipping)
+    int localsskip_ = 1;
+    //! Contribution type for local stress calculation (default = 0, all contributions)
+    int localscontrib_ = 0;
+    //! Whether to apply periodic boundary conditions for local stress (default = false)
+    bool localspbc_ = false;
 };
 
 /*! \libinternal
@@ -616,6 +630,22 @@ public:
      * \param builder
      */
     MdrunnerBuilder& addStopHandlerBuilder(std::unique_ptr<StopHandlerBuilder> builder);
+
+    /*!
+     * \brief Set local stress calculation parameters.
+     *
+     * Optional. Provides parameters for controlling local stress tensor calculation.
+     * If not provided, defaults will be used (local stress disabled).
+     *
+     * \param nstlocals     Frequency of writing local stress grid to file (0 = disabled)
+     * \param localsskip    Skip factor for local stress calculation
+     * \param localscontrib Contribution type for local stress calculation
+     * \param localspbc     Whether to apply periodic boundary conditions for local stress
+     */
+    MdrunnerBuilder& addLocalStressParameters(int  nstlocals,
+                                              int  localsskip,
+                                              int  localscontrib,
+                                              bool localspbc);
 
     /*!
      * \brief Acquire a handle to the SimulationInput.

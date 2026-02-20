@@ -276,6 +276,11 @@ int gmx_mdrun(MPI_Comm communicator, const gmx_hw_info_t& hwinfo, int argc, char
     builder.addUpdateTaskAssignment(options.update_opt_choices[0]);
     builder.addNeighborList(options.nstlist_cmdline);
     builder.addReplicaExchange(options.replExParams);
+    // Add local stress parameters
+    builder.addLocalStressParameters(options.nstlocals,
+                                     options.localsskip,
+                                     options.localscontrib,
+                                     options.localspbc);
     // Need to establish run-time values from various inputs to provide a resource handle to Mdrunner
     builder.addHardwareOptions(options.hw_opt);
     // \todo File names are parameters that should be managed modularly through further factoring.

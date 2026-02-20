@@ -407,6 +407,11 @@ Mdrunner Mdrunner::cloneOnSpawnedThread() const
     newRunner.nstlist_cmdline = nstlist_cmdline;
     newRunner.replExParams    = replExParams;
     newRunner.pforce          = pforce;
+    // Copy local stress parameters
+    newRunner.nstlocals_      = nstlocals_;
+    newRunner.localsskip_     = localsskip_;
+    newRunner.localscontrib_  = localscontrib_;
+    newRunner.localspbc_      = localspbc_;
     // Give the spawned thread the newly created valid communicator
     // for the simulation.
     newRunner.libraryWorldCommunicator = MPI_COMM_WORLD;
@@ -2568,6 +2573,8 @@ public:
 
     void addStopHandlerBuilder(std::unique_ptr<StopHandlerBuilder> builder);
 
+    void addLocalStressParameters(int nstlocals, int localsskip, int localscontrib, bool localspbc);
+
     Mdrunner build();
 
 private:
@@ -2645,6 +2652,20 @@ private:
      * See issue #3379 for broader discussion on API aspects of simulation inputs and outputs.
      */
     SimulationInputHandle inputHolder_;
+
+    /*! \brief Local stress calculation parameters
+     *
+     * These parameters control the local stress calculation feature.
+     * They are optional and have sensible defaults.
+     */
+    //! Frequency of writing local stress grid to file (0 = disabled)
+    int nstlocals_ = 0;
+    //! Skip factor for local stress calculation (default = 1, no skipping)
+    int localsskip_ = 1;
+    //! Contribution type for local stress calculation (default = 0, all contributions)
+    int localscontrib_ = 0;
+    //! Whether to apply periodic boundary conditions for local stress (default = false)
+    bool localspbc_ = false;
 };
 
 Mdrunner::BuilderImplementation::BuilderImplementation(std::unique_ptr<MDModules> mdModules,
@@ -2684,6 +2705,17 @@ void Mdrunner::BuilderImplementation::addReplicaExchange(const ReplicaExchangePa
     replicaExchangeParameters_ = params;
 }
 
+void Mdrunner::BuilderImplementation::addLocalStressParameters(int  nstlocals,
+                                                               int  localsskip,
+                                                               int  localscontrib,
+                                                               bool localspbc)
+{
+    nstlocals_     = nstlocals;
+    localsskip_    = localsskip;
+    localscontrib_ = localscontrib;
+    localspbc_     = localspbc;
+}
+
 Mdrunner Mdrunner::BuilderImplementation::build()
 {
     auto newRunner = Mdrunner(std::move(mdModules_));
@@ -2700,6 +2732,12 @@ Mdrunner Mdrunner::BuilderImplementation::build()
     newRunner.nstlist_cmdline = nstlist_;
 
     newRunner.replExParams = replicaExchangeParameters_;
+
+    // Transfer local stress parameters
+    newRunner.nstlocals_     = nstlocals_;
+    newRunner.localsskip_    = localsskip_;
+    newRunner.localscontrib_ = localscontrib_;
+    newRunner.localspbc_     = localspbc_;
 
     newRunner.filenames = filenames_;
 
@@ -2967,6 +3005,15 @@ MdrunnerBuilder& MdrunnerBuilder::addStopHandlerBuilder(std::unique_ptr<StopHand
 MdrunnerBuilder& MdrunnerBuilder::addInput(SimulationInputHandle input)
 {
     impl_->addInput(std::move(input));
+    return *this;
+}
+
+MdrunnerBuilder& MdrunnerBuilder::addLocalStressParameters(int  nstlocals,
+                                                           int  localsskip,
+                                                           int  localscontrib,
+                                                           bool localspbc)
+{
+    impl_->addLocalStressParameters(nstlocals, localsskip, localscontrib, localspbc);
     return *this;
 }
 
