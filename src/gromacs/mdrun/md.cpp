@@ -646,7 +646,7 @@ void gmx::LegacySimulator::do_md()
 		    for (int j = 0; j < 3; j++)
 			box_ext[i][j] = static_cast<mds::real_ext>(state_->box[i][j]);
 
-    	        locals_grid.SetBox(box_ext, ir->pressureCouplingOptions.epc);
+    	        locals_grid.SetBox(box_ext, static_cast<int>(ir->pressureCouplingOptions.epc));
 
 		// Setup periodic boundary conditions
 		bool xper, yper, zper, periodic;
