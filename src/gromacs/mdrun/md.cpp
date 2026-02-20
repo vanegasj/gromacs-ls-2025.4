@@ -234,6 +234,10 @@ void gmx::LegacySimulator::do_md()
 
     bool bInteractiveMDstep = false;
 
+    // Localstress variable declarations (pulling from legacymdrunoptions)
+    int64_t localsskip    = mdrunOptions_.localsskip;
+    int     localscontrib = mdrunOptions_.localscontrib;
+
     SimulationSignals signals;
     // Most global communication stages don't propagate mdrun
     // signals, and will use this object to achieve that.
@@ -894,7 +898,7 @@ void gmx::LegacySimulator::do_md()
     } 
     if (PAR(cr_)) {
         // Share localsskip frame number
-        gmx_bcast(sizeof(localsskip), &localsskip, cr_);
+        gmx_bcast(sizeof(localsskip), &localsskip, cr_->mpi_comm_mygroup);
     }
     
     /* end local stress */
@@ -1337,7 +1341,7 @@ void gmx::LegacySimulator::do_md()
 	    /* local stress caputure coordinates and half-step velocities for non-VV */
 	    if (!EI_VV(ir->eI) && locals_bDoAnalysis)
 	    {
-	        int natoms = haveDDAtomOrdering(*cr_) ? md->homenr : state_->numAtoms;
+	        int natoms = haveDDAtomOrdering(*cr_) ? md->homenr : state_->numAtoms();
 	        x_full_locals.resize(natoms);
 	        v_half_locals.resize(natoms);
 	        
@@ -1487,7 +1491,7 @@ void gmx::LegacySimulator::do_md()
 		/* local stress - capture coordinates and velocities for VV */
 		if (EI_VV(ir->eI) && locals_bDoAnalysis)
 		{
-		    int natoms = haveDDAtomOrdering(*cr_) ? md->homenr : state_->numAtoms;
+		    int natoms = haveDDAtomOrdering(*cr_) ? md->homenr : state_->numAtoms();
 		    x_full_locals.resize(natoms);
 		    v_half_locals.resize(natoms);
 		    
@@ -2299,7 +2303,7 @@ void gmx::LegacySimulator::do_md()
 	/* begin local stress - kinetic distribution and checkpoint */
 	if (locals_bDoAnalysis)
 	{
-	    int natoms = haveDDAtomOrdering(*cr_) ? md->homenr : state_->numAtoms;
+	    int natoms = haveDDAtomOrdering(*cr_) ? md->homenr : state_->numAtoms();
 	    
 	    // Distribute kinetic energy contributions to the stress grid
 	    if (locals_grid.settings.contrib == mds_all || locals_grid.settings.contrib == mds_kin)
