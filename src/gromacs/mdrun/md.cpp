@@ -995,8 +995,8 @@ void gmx::LegacySimulator::do_md()
             // localscontrib needs to be passed as a parameter
             locals_grid.SetContribType(localscontrib);
 
-	    // Convert float box to double
-	    // Redefining box_ext
+	    // Convert float box to double (rescoped box_ext)
+	    mds::real_ext box_ext[3][3];
 	    for (int i = 0; i < 3; i++)
 	        for (int j = 0; j < 3; j++)
 	    	box_ext[i][j] = static_cast<mds::real_ext>(state_->box[i][j]);
