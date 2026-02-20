@@ -255,6 +255,10 @@ int LegacyMdrunOptions::updateFromCommandLine(int argc, char** argv, ArrayRef<co
 
     mdrunOptions.rerun            = opt2bSet("-rerun", gmx::ssize(filenames), filenames.data());
     mdrunOptions.ntompOptionIsSet = opt2parg_bSet("-ntomp", asize(pa), pa);
+	
+    // Local stress variables
+    mdrunOptions.localsskip    = localsskip;
+    mdrunOptions.localscontrib = localscontrib;
 
     domdecOptions.rankOrder    = static_cast<DdRankOrder>(nenum(ddrank_opt_choices));
     domdecOptions.dlbOption    = static_cast<DlbOption>(nenum(dddlb_opt_choices));

@@ -127,6 +127,10 @@ struct MdrunOptions
     gmx_bool verbose = FALSE;
     //! If verbose=true, print remaining runtime at this step interval
     int verboseStepPrintInterval = 100;
+    
+    // Localstress variables
+    int localsskip    = 1;
+    int localscontrib = 0;
 };
 
 } // end namespace gmx
