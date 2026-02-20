@@ -638,9 +638,15 @@ void gmx::LegacySimulator::do_md()
 	    if (!locals_grid.settings.initialized)
 	    {
 		// locals_grid.SetFileName(opt2fn("-ols", nFile_, fnm_));
-		// You'll need to figure out how to get the filename in the new API
+		// We'll need to figure out how to get the filename in the new API
 		
-		locals_grid.SetBox(state_->box, ir->pressureCouplingOptions.epc);
+	        // Convert float box to double
+		mds::real_ext box_ext[3][3];
+		for (int i = 0; i < 3; i++)
+		    for (int j = 0; j < 3; j++)
+			box_ext[i][j] = static_cast<mds::real_ext>(state_->box[i][j]);
+
+    	        locals_grid.SetBox(box_ext, ir->pressureCouplingOptions.epc);
 
 		// Setup periodic boundary conditions
 		bool xper, yper, zper, periodic;
@@ -665,7 +671,13 @@ void gmx::LegacySimulator::do_md()
 
 		// Initialize grids
 		locals_grid.Init();
-		locals_grid.UpdateBoxSpacings(state_->box);
+
+		// Convert float box to double
+		mds::real_ext box_ext[3][3];
+		for (int i = 0; i < 3; i++)
+		    for (int j = 0; j < 3; j++)
+			box_ext[i][j] = static_cast<mds::real_ext>(state_->box[i][j]);
+		locals_grid.UpdateBoxSpacings(box_ext);
 	    }
 	}
     }
@@ -978,7 +990,14 @@ void gmx::LegacySimulator::do_md()
         {
             // localscontrib needs to be passed as a parameter
             locals_grid.SetContribType(localscontrib);
-            locals_grid.UpdateBoxSpacings(state_->box);
+
+	    // Convert float box to double
+	    mds::real_ext box_ext[3][3];
+	    for (int i = 0; i < 3; i++)
+	        for (int j = 0; j < 3; j++)
+	    	box_ext[i][j] = static_cast<mds::real_ext>(state_->box[i][j]);
+
+            locals_grid.UpdateBoxSpacings(box_ext);
         }
         else
         {
@@ -2294,16 +2313,23 @@ void gmx::LegacySimulator::do_md()
 		    }
 		    real mass = md->massT[i];
 		    
+		    // Converting to double per atom
+		    mds::real_ext x_ext[3] = { x_full_locals[i][0], x_full_locals[i][1], x_full_locals[i][2] };
+    		    mds::real_ext v_h_ext[3] = { v_half_locals[i][0], v_half_locals[i][1], v_half_locals[i][2] };
+
 		    // Different logic for VV vs non-VV integrators
 		    if (EI_VV(ir->eI))
 		    {
 			// For VV: use captured half-step velocities for both v_half and v_full
-			locals_grid.DistributeKinetic(mass, x_full_locals[i], v_half_locals[i], v_half_locals[i]);
+			locals_grid.DistributeKinetic(mass, x_ext, v_h_ext, v_h_ext);
 		    }
 		    else
 		    {
+		        // Converting to double
+			mds::real_ext v_f_ext[3] = { state_->v[i][0], state_->v[i][1], state_->v[i][2] };
+
 			// For leap-frog: use captured half-step v and current full-step v
-			locals_grid.DistributeKinetic(mass, x_full_locals[i], v_half_locals[i], state_->v[i]);
+			locals_grid.DistributeKinetic(mass, x_ext, v_h_ext, v_f_ext);
 		    }
 		}
 	    }
@@ -2391,7 +2417,7 @@ void gmx::LegacySimulator::do_md()
     }
 
     /* local stress final output */
-    if (MAIN(cr_)) {
+    if (MAIN(cr_)) 
     {
 	locals_grid.Write();
     }
