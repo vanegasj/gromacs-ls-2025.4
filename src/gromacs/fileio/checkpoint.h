@@ -49,6 +49,8 @@
 #include "gromacs/utility/gmxmpi.h"
 #include "gromacs/utility/keyvaluetreebuilder.h"
 
+#include "mdstress/mds_stressgrid.h"
+
 class energyhistory_t;
 struct gmx_file_position_t;
 struct ObservablesHistory;

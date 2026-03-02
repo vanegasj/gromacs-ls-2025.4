@@ -96,6 +96,7 @@
 #include "gromacs/utility/textwriter.h"
 #include "gromacs/utility/txtdump.h"
 
+
 #include "buildinfo.h"
 
 
@@ -103,6 +104,9 @@ enum class ChannelHistory : int;
 
 #define CPT_MAGIC1 171817
 #define CPT_MAGIC2 171819
+
+mds::StressGrid locals_grid;
+
 
 namespace gmx
 {

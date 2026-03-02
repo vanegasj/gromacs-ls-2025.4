@@ -2423,6 +2423,7 @@ void gmx::LegacySimulator::do_md()
     /* local stress final output */
     if (MAIN(cr_)) 
     {
+	printf("##############LOCALS GRID WRITE SHOULD BE CALLED HERE!#############\n");
 	locals_grid.Write();
     }
 

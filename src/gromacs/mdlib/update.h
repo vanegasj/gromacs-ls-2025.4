@@ -47,6 +47,8 @@
 #include "gromacs/utility/arrayref.h"
 #include "gromacs/utility/real.h"
 
+#include "mdstress/mds_stressgrid.h"
+
 class ekinstate_t;
 class gmx_ekindata_t;
 struct gmx_enerdata_t;
