@@ -111,7 +111,8 @@ void do_dih_fup(int                 i,
                 const rvec*         x,
                 int                 t1,
                 int                 t2,
-                int                 t3);
+                int                 t3
+                mds::StressGrid *locals_grid);
 
 
 /*! \brief Compute CMAP dihedral energies and forces */
@@ -129,7 +130,8 @@ real cmap_dihs(int                 nbonds,
                t_fcdata gmx_unused*     fcd,
                t_disresdata gmx_unused* disresdata,
                t_oriresdata gmx_unused* oriresdata,
-               int gmx_unused*          global_atom_index);
+               int gmx_unused*          global_atom_index,
+               mds::StressGrid *locals_grid);
 
 /*! \brief For selecting which flavor of bonded kernel is used for simple bonded types */
 enum class BondedKernelFlavor
