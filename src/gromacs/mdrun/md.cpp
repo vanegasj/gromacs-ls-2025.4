@@ -641,7 +641,7 @@ void gmx::LegacySimulator::do_md()
 	{
 	    if (!locals_grid.settings.initialized)
 	    {
-		// locals_grid.SetFileName(opt2fn("-ols", nFile_, fnm_));
+		locals_grid.SetFileName(opt2fn("-ols", nFile_, fnm_));
 		// We'll need to figure out how to get the filename in the new API
 		
 	        // Convert float box to double
