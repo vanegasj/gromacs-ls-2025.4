@@ -215,7 +215,7 @@ include(gmxOptionUtilities)
 
 set(CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH}" CACHE STRING "Extra locations to search for external libraries and tools (give directory without lib, bin, or include)")
 
-option(GMX_DOUBLE "Use double precision (much slower, use only if you really need it)" OFF)
+option(GMX_DOUBLE "Use double precision (much slower, use only if you really need it)" ON)
 
 option(GMX_MPI    "Build a parallel (message-passing) version of GROMACS" OFF)
 option(GMX_THREAD_MPI  "Build a thread-MPI-based multithreaded version of GROMACS (not compatible with MPI)" ON)
