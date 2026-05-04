@@ -185,7 +185,8 @@ real calculateSimpleBond(int                       ftype,
                          t_disresdata*             disresdata,
                          t_oriresdata*             oriresdata,
                          int gmx_unused*           global_atom_index,
-                         BondedKernelFlavor        bondedKernelFlavor);
+                         BondedKernelFlavor        bondedKernelFlavor,
+			 mds::StressGrid* 	   locals_grid);
 
 //! Getter for finding the flop count for an \c ftype interaction.
 int nrnbIndex(int ftype);

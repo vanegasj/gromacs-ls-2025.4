@@ -347,7 +347,7 @@ real calc_one_bond(int                                 thread,
                                     fcd->orires.get(),
                                     global_atom_index,
                                     flavor,
-				    locals_grid); /* TODO modify fn sig */
+				    locals_grid); 
         }
     }
     else

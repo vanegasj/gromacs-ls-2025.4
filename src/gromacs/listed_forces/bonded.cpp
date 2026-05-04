@@ -107,7 +107,8 @@ using BondedFunction = real (*)(int                       nbonds,
                                 t_fcdata*                 fcd,
                                 t_disresdata*             disresdata,
                                 t_oriresdata*             oriresdata,
-                                int*                      ddgatindex);
+                                int*                      ddgatindex,
+				mds::StressGrid* 	  locals_grid);
 
 /*! \brief Mysterious CMAP coefficient matrix */
 const int cmap_coeff_matrix[] = {
@@ -4111,12 +4112,13 @@ real calculateSimpleBond(const int                 ftype,
                          t_disresdata*             disresdata,
                          t_oriresdata*             oriresdata,
                          int gmx_unused*           global_atom_index,
-                         const BondedKernelFlavor  bondedKernelFlavor)
+                         const BondedKernelFlavor  bondedKernelFlavor,
+			 mds::StressGrid* 	   locals_grid)
 {
     const BondedInteractions& bonded = c_bondedInteractionFunctionsPerFlavor[bondedKernelFlavor][ftype];
 
     real v = bonded.function(
-            numForceatoms, forceatoms, forceparams, x, f, fshift, pbc, lambda, dvdlambda, charge, fcd, disresdata, oriresdata, global_atom_index);
+            numForceatoms, forceatoms, forceparams, x, f, fshift, pbc, lambda, dvdlambda, charge, fcd, disresdata, oriresdata, global_atom_index, locals_grid);
 
     return v;
 }
