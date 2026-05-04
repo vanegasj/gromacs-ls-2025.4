@@ -80,6 +80,8 @@
 #include "gromacs/utility/classhelpers.h"
 #include "gromacs/utility/real.h"
 
+#include "mdstress/mds_stressgrid.h"
+
 struct bonded_threading_t;
 struct gmx_enerdata_t;
 struct gmx_ffparams_t;
@@ -190,7 +192,8 @@ public:
                    gmx::ArrayRef<const unsigned short>       cENER,
                    int                                       nPerturbed,
                    int*                                      global_atom_index,
-                   const gmx::StepWorkload&                  stepWork);
+                   const gmx::StepWorkload&                  stepWork,
+		   mds::StressGrid* 			     locals_grid);
 
     //! Returns whether bonded interactions are assigned to the CPU
     bool haveCpuBondeds() const;

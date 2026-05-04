@@ -272,7 +272,8 @@ real calc_one_bond(int                                 thread,
                    const int                           numEnergyGroups,
                    t_fcdata*                           fcd,
                    const gmx::StepWorkload&            stepWork,
-                   int*                                global_atom_index)
+                   int*                                global_atom_index,
+		   mds::StressGrid* 		       locals_grid)
 {
     GMX_ASSERT(idef.ilsort == ilsortNO_FE || idef.ilsort == ilsortFE_SORTED,
                "The topology should be marked either as no FE or sorted on FE");
@@ -325,7 +326,8 @@ real calc_one_bond(int                                 thread,
                           fcd,
                           nullptr,
                           nullptr,
-                          global_atom_index);
+                          global_atom_index,
+			  locals_grid); /* TODO modify fn sig */
         }
         else
         {
@@ -344,7 +346,8 @@ real calc_one_bond(int                                 thread,
                                     fcd->disres,
                                     fcd->orires.get(),
                                     global_atom_index,
-                                    flavor);
+                                    flavor,
+				    locals_grid); /* TODO modify fn sig */
         }
     }
     else
@@ -371,7 +374,8 @@ real calc_one_bond(int                                 thread,
                  havePerturbedInteractions,
                  stepWork,
                  grpp,
-                 global_atom_index);
+                 global_atom_index,
+		 locals_grid); /* TODO modify do_pairs fn sig */
     }
 
     if (thread == 0)
@@ -485,7 +489,8 @@ static void calcBondedForces(const InteractionDefinitions&       idef,
                              const int                           numEnergyGroups,
                              t_fcdata*                           fcd,
                              const gmx::StepWorkload&            stepWork,
-                             int*                                global_atom_index)
+                             int*                                global_atom_index,
+			     mds::StressGrid* 			 locals_grid)
 {
 #pragma omp parallel for num_threads(bt->nthreads) schedule(static)
     for (int thread = 0; thread < bt->nthreads; thread++)
@@ -602,7 +607,8 @@ void calc_listed(struct gmx_wallcycle*               wcycle,
                  const int                           numEnergyGroups,
                  t_fcdata*                           fcd,
                  int*                                global_atom_index,
-                 const gmx::StepWorkload&            stepWork)
+                 const gmx::StepWorkload&            stepWork,
+		 mds::StressGrid*                    locals_grid)
 {
     if (bt->haveBondeds)
     {
@@ -677,7 +683,8 @@ void calc_listed_lambda(const InteractionDefinitions&       idef,
                         gmx::ArrayRef<const unsigned short> cENER,
                         int                                 nPerturbed,
                         t_fcdata*                           fcd,
-                        int*                                global_atom_index)
+                        int*                                global_atom_index,
+			mds::StressGrid*	 	    locals_grid)
 {
     WorkDivision& workDivision = bt->foreignLambdaWorkDivision;
 
@@ -768,7 +775,8 @@ void ListedForces::calculate(struct gmx_wallcycle*                     wcycle,
                              gmx::ArrayRef<const unsigned short>       cENER,
                              int                                       nPerturbed,
                              int*                                      global_atom_index,
-                             const gmx::StepWorkload&                  stepWork)
+                             const gmx::StepWorkload&                  stepWork,
+			     mds::StressGrid*			       locals_grid)
 {
     if (interactionSelection_.none() || !stepWork.computeListedForces)
     {
@@ -888,7 +896,8 @@ void ListedForces::calculate(struct gmx_wallcycle*                     wcycle,
                 numEnergyGroups_,
                 fcdata,
                 global_atom_index,
-                stepWork);
+                stepWork,
+		locals_grid);
 
     /* Check if we have to determine energy differences
      * at foreign lambda's.
@@ -939,7 +948,8 @@ void ListedForces::calculate(struct gmx_wallcycle*                     wcycle,
                                    cENER,
                                    nPerturbed,
                                    fcdata,
-                                   global_atom_index);
+                                   global_atom_index,
+				   locals_grid);
                 sum_epot(*foreignEnergyGroups_, foreign_term.data());
                 enerd->foreignLambdaTerms.accumulate(i, foreign_term[F_EPOT], dvdl);
                 std::fill(std::begin(dvdl), std::end(dvdl), 0.0);
