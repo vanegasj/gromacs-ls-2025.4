@@ -3104,7 +3104,11 @@ void accumulateCmapForces(const rvec      x[],
                           const int       al,
                           const real      df,
                           const int       t1,
-                          const int       t2)
+                          const int       t2,
+			  gmx::RVec* 	  out_fi,
+			  gmx::RVec*      out_fj,
+			  gmx::RVec*      out_fk,
+			  gmx::RVec*      out_fl)
 {
     const real fg  = iprod(r_ij, r_kj);
     const real hg  = iprod(r_kl, r_kj);
@@ -3127,6 +3131,12 @@ void accumulateCmapForces(const rvec      x[],
     rvec_inc(f[aj], f_j);
     rvec_inc(f[ak], f_k);
     rvec_inc(f[al], f_l);
+
+    /* export forces if requested */
+    if (out_fi) { (*out_fi)[XX] = f_i[XX]; (*out_fi)[YY] = f_i[YY]; (*out_fi)[ZZ] = f_i[ZZ]; }
+    if (out_fj) { (*out_fj)[XX] = f_j[XX]; (*out_fj)[YY] = f_j[YY]; (*out_fj)[ZZ] = f_j[ZZ]; }
+    if (out_fk) { (*out_fk)[XX] = f_k[XX]; (*out_fk)[YY] = f_k[YY]; (*out_fk)[ZZ] = f_k[ZZ]; }
+    if (out_fl) { (*out_fl)[XX] = f_l[XX]; (*out_fl)[YY] = f_l[YY]; (*out_fl)[ZZ] = f_l[ZZ]; }
 
     /* Shift forces */
     if (fshift != nullptr)
@@ -3156,7 +3166,8 @@ real cmap_dihs(int                 nbonds,
                t_fcdata gmx_unused*     fcd,
                t_disresdata gmx_unused* disresdata,
                t_oriresdata gmx_unused* oriresdata,
-               int gmx_unused*          global_atom_index)
+               int gmx_unused*          global_atom_index,
+	       mds::StressGrid* 	locals_grid)
 {
     int t11, t21, t31, t12, t22, t32;
     int ip1m1, ip1p1, ip1p2;
@@ -3409,6 +3420,47 @@ real cmap_dihs(int                 nbonds,
         /* Do forces - second torsion */
         accumulateCmapForces(
                 x, f, fshift, pbc, r2_ij, r2_kj, r2_kl, a2, b2, h2, ra2r2, rb2r2, rgr2, rg2, a2i, a2j, a2k, a2l, df2, t12, t22);
+
+	/* begin stress tensor */
+        if (locals_grid != nullptr)
+        {
+            if (locals_grid->settings.contrib & (mds_all | mds_cmp))
+            {
+                rvec Ri, Rj, Rk, Rl, Rm, dx;
+                rvec lpR[5], lpF[5];
+
+                copy_rvec(x[ai], Ri);
+                pbc_rvec_sub(pbc, x[aj], x[ai], dx);
+                rvec_add(x[ai], dx, Rj);
+                pbc_rvec_sub(pbc, x[ak], x[ai], dx);
+                rvec_add(x[ai], dx, Rk);
+                pbc_rvec_sub(pbc, x[al], x[ai], dx);
+                rvec_add(x[ai], dx, Rl);
+                pbc_rvec_sub(pbc, x[am], x[ai], dx);
+                rvec_add(x[ai], dx, Rm);
+
+                // Combine forces from both torsions per atom
+                gmx::RVec Fi = f1_i;
+                gmx::RVec Fj = f1_j + f2_i;
+                gmx::RVec Fk = f1_k + f2_j;
+                gmx::RVec Fl = f1_l + f2_k;
+                gmx::RVec Fm = f2_l;
+
+                lpR[0][0] = Ri[0]; lpR[0][1] = Ri[1]; lpR[0][2] = Ri[2];
+                lpR[1][0] = Rj[0]; lpR[1][1] = Rj[1]; lpR[1][2] = Rj[2];
+                lpR[2][0] = Rk[0]; lpR[2][1] = Rk[1]; lpR[2][2] = Rk[2];
+                lpR[3][0] = Rl[0]; lpR[3][1] = Rl[1]; lpR[3][2] = Rl[2];
+                lpR[4][0] = Rm[0]; lpR[4][1] = Rm[1]; lpR[4][2] = Rm[2];
+                lpF[0][0] = Fi[0]; lpF[0][1] = Fi[1]; lpF[0][2] = Fi[2];
+                lpF[1][0] = Fj[0]; lpF[1][1] = Fj[1]; lpF[1][2] = Fj[2];
+                lpF[2][0] = Fk[0]; lpF[2][1] = Fk[1]; lpF[2][2] = Fk[2];
+                lpF[3][0] = Fl[0]; lpF[3][1] = Fl[1]; lpF[3][2] = Fl[2];
+                lpF[4][0] = Fm[0]; lpF[4][1] = Fm[1]; lpF[4][2] = Fm[2];
+
+                locals_grid->DistributeInteraction(5, lpR, lpF, nullptr, nullptr);
+            }
+        }
+        /* end stress tensor */
     }
     return vtot;
 }

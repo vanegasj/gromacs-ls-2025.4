@@ -327,7 +327,7 @@ real calc_one_bond(int                                 thread,
                           nullptr,
                           nullptr,
                           global_atom_index,
-			  locals_grid); /* TODO modify fn sig */
+			  locals_grid); 
         }
         else
         {
